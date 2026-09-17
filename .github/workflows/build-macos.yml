@@ -64,11 +64,17 @@ jobs:
           name: Countdown-macOS-${{ matrix.arch }}
           path: dist/${{ matrix.artifact }}
 
-      - name: Upload to GitHub Release
+            - name: Upload to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "Countdown Timer ${GITHUB_REF_NAME}" \
+              --notes "Countdown Timer release for Windows and macOS."
+          fi
+
           gh release upload "${GITHUB_REF_NAME}" \
             "dist/${{ matrix.artifact }}" \
             --clobber
