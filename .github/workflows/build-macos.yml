@@ -1,0 +1,74 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            artifact: Countdown-macOS-Apple-Silicon.zip
+          - arch: x86_64
+            runner: macos-15-intel
+            artifact: Countdown-macOS-Intel.zip
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install PySide6 PyInstaller
+
+      - name: Build macOS app
+        run: |
+          rm -rf build dist
+          python -m PyInstaller \
+            --noconfirm \
+            --clean \
+            --windowed \
+            --onedir \
+            --name "Countdown" \
+            --osx-bundle-identifier "com.countdowntimer.app" \
+            countdown.py
+
+      - name: Create ZIP
+        run: |
+          cd dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            "Countdown.app" \
+            "${{ matrix.artifact }}"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Countdown-macOS-${{ matrix.arch }}
+          path: dist/${{ matrix.artifact }}
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            "dist/${{ matrix.artifact }}" \
+            --clobber
