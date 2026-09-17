@@ -1,0 +1,7 @@
+build/
+dist/
+Countdown.spec
+__pycache__/
+*.pyc
+*.pyo
+*.log
