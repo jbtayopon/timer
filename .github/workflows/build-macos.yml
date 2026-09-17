@@ -18,11 +18,11 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
-            artifact: Countdown-macOS-Apple-Silicon.zip
+            artifact: Countdown-macOS-Apple-Silicon.dmg
 
           - arch: x86_64
             runner: macos-15-intel
-            artifact: Countdown-macOS-Intel.zip
+            artifact: Countdown-macOS-Intel.dmg
 
     runs-on: ${{ matrix.runner }}
 
@@ -53,13 +53,18 @@ jobs:
             --osx-bundle-identifier "com.countdowntimer.app" \
             countdown.py
 
-      - name: Create ZIP
+      - name: Create DMG
         run: |
-          cd dist
+          brew install create-dmg
 
-          ditto -c -k --sequesterRsrc --keepParent \
-            "Countdown.app" \
-            "${{ matrix.artifact }}"
+          create-dmg \
+            --volname "Countdown Timer" \
+            --window-size 700 450 \
+            --icon-size 120 \
+            --app-drop-link 520 200 \
+            --icon "Countdown.app" 180 200 \
+            "dist/${{ matrix.artifact }}" \
+            "dist/Countdown.app"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
